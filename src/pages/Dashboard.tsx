@@ -17,6 +17,7 @@ import { SPRINGS } from "@/src/lib/constants"
 import { useStore } from "@/src/store/useStore"
 import { useToast } from "@/src/components/ui/Toast"
 import { cn } from "@/src/lib/utils"
+import { AccountSettings } from "@/src/components/AccountSettings"
 
 // Types
 interface Project {
@@ -38,6 +39,7 @@ export default function Dashboard() {
   const { toast } = useToast()
   const [projects, setProjects] = React.useState<Project[]>([])
   const [loading, setLoading] = React.useState(true)
+  const [isAccountSettingsOpen, setIsAccountSettingsOpen] = React.useState(false)
   
   const isNewProjectSheetOpen = useStore(state => state.isNewProjectSheetOpen)
   const setNewProjectSheetOpen = useStore(state => state.setNewProjectSheetOpen)
@@ -84,6 +86,7 @@ export default function Dashboard() {
             src={auth.currentUser?.photoURL} 
             fallback={auth.currentUser?.displayName || auth.currentUser?.email || "FF"} 
             className="cursor-pointer hover:shadow-[0_0_0_2px_rgba(245,158,11,0.3)] transition-shadow"
+            onClick={() => setIsAccountSettingsOpen(true)}
           />
         </div>
       </header>
@@ -176,6 +179,12 @@ export default function Dashboard() {
 
       {/* New Project Flow */}
       <NewProjectSheet />
+
+      {/* Account Settings */}
+      <AccountSettings 
+        isOpen={isAccountSettingsOpen} 
+        onClose={() => setIsAccountSettingsOpen(false)} 
+      />
     </div>
   )
 }
