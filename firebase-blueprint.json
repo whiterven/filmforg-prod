@@ -1,0 +1,87 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "A user of the FilmForge application",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "User ID" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "createdAt": { "type": "timestamp" },
+        "preferences": {
+          "type": "object",
+          "properties": {
+            "imageBatchSize": { "type": "number" },
+            "promptLanguage": { "type": "string" }
+          }
+        }
+      },
+      "required": ["uid", "email", "createdAt"]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "A film production project",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "title": { "type": "string" },
+        "type": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["draft", "in_production", "completed", "error"] },
+        "stage": { "type": "number", "description": "1: Script, 2: Images, 3: Video, 4: Assembly" },
+        "createdAt": { "type": "timestamp" },
+        "updatedAt": { "type": "timestamp" },
+        "stats": {
+          "type": "object",
+          "properties": {
+            "totalShots": { "type": "number" },
+            "approvedImages": { "type": "number" },
+            "approvedClips": { "type": "number" },
+            "skippedShots": { "type": "number" }
+          }
+        }
+      },
+      "required": ["id", "ownerId", "title", "type", "status", "stage", "createdAt", "updatedAt"]
+    },
+    "Shot": {
+      "title": "Shot",
+      "description": "A single shot within a project",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "projectId": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "shotNumber": { "type": "number" },
+        "sceneReference": { "type": "string" },
+        "description": { "type": "string" },
+        "characters": { "type": "array", "items": { "type": "string" } },
+        "location": { "type": "string" },
+        "imagePrompt": { "type": "string" },
+        "videoPrompt": { "type": "string" },
+        "durationEstimate": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "generating_image", "image_ready", "image_approved", "generating_video", "video_ready", "video_approved", "skipped", "error"] },
+        "imageUrl": { "type": "string" },
+        "videoUrl": { "type": "string" },
+        "createdAt": { "type": "timestamp" },
+        "updatedAt": { "type": "timestamp" }
+      },
+      "required": ["id", "projectId", "ownerId", "shotNumber", "status", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profiles"
+    },
+    "projects/{projectId}": {
+      "schema": { "$ref": "#/entities/Project" },
+      "description": "Film projects"
+    },
+    "projects/{projectId}/shots/{shotId}": {
+      "schema": { "$ref": "#/entities/Shot" },
+      "description": "Shots for a specific project"
+    }
+  }
+}

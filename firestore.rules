@@ -1,0 +1,94 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.ownerId;
+    }
+    
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+    
+    function isValidString(field, minLen, maxLen) {
+      return request.resource.data[field] is string &&
+             request.resource.data[field].size() >= minLen &&
+             request.resource.data[field].size() <= maxLen;
+    }
+    
+    function isValidOptionalString(field, minLen, maxLen) {
+      return !('field' in request.resource.data) ||
+             (request.resource.data[field] is string &&
+              request.resource.data[field].size() >= minLen &&
+              request.resource.data[field].size() <= maxLen);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+    
+    function isValidUser(data) {
+      return data.uid is string && data.uid.size() > 0 && data.uid.size() < 100 &&
+             data.email is string && data.email.size() > 0 && data.email.size() < 150 &&
+             data.createdAt is timestamp;
+    }
+    
+    function isValidProject(data) {
+      return data.id is string && data.id.size() > 0 && data.id.size() < 100 &&
+             data.ownerId is string && data.ownerId.size() > 0 && data.ownerId.size() < 100 &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 150 &&
+             data.type is string && data.type.size() > 0 && data.type.size() < 50 &&
+             data.status in ['draft', 'in_production', 'completed', 'error'] &&
+             data.stage is number && data.stage >= 1 && data.stage <= 4 &&
+             data.createdAt is timestamp &&
+             data.updatedAt is timestamp;
+    }
+    
+    function isValidShot(data) {
+      return data.id is string && data.id.size() > 0 && data.id.size() < 100 &&
+             data.projectId is string && data.projectId.size() > 0 && data.projectId.size() < 100 &&
+             data.ownerId is string && data.ownerId.size() > 0 && data.ownerId.size() < 100 &&
+             data.shotNumber is number && data.shotNumber >= 0 &&
+             data.status in ['pending', 'generating_image', 'image_ready', 'image_approved', 'generating_video', 'video_ready', 'video_approved', 'skipped', 'error'] &&
+             data.createdAt is timestamp &&
+             data.updatedAt is timestamp;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+    
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.uid == userId;
+      allow update: if isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.uid == resource.data.uid && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isOwner(userId);
+    }
+    
+    match /projects/{projectId} {
+      allow read: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
+      allow create: if isAuthenticated() && isValidProject(request.resource.data) && request.resource.data.ownerId == request.auth.uid;
+      allow update: if isAuthenticated() && isDocOwner() && isValidProject(request.resource.data) && request.resource.data.ownerId == resource.data.ownerId && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isAuthenticated() && isDocOwner();
+      
+      match /shots/{shotId} {
+        allow read: if isAuthenticated() && get(/databases/$(database)/documents/projects/$(projectId)).data.ownerId == request.auth.uid;
+        allow create: if isAuthenticated() && isValidShot(request.resource.data) && request.resource.data.ownerId == request.auth.uid && request.resource.data.projectId == projectId;
+        allow update: if isAuthenticated() && isDocOwner() && isValidShot(request.resource.data) && request.resource.data.ownerId == resource.data.ownerId && request.resource.data.projectId == resource.data.projectId && request.resource.data.createdAt == resource.data.createdAt;
+        allow delete: if isAuthenticated() && isDocOwner();
+      }
+    }
+  }
+}
